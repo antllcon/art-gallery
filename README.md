@@ -7,3 +7,7 @@ __Математичекая модель__ — Для простого мног
 ### Дополнительно
 
 Ссылка на курсовую работу - [текущая версия](https://docs.google.com/document/d/1HfxGMp0xN-bjcSNZZZLs98nSxar6FJbmPYKOmIw4tqM/edit?usp=sharing) 
+
+### Компиляция
+
+    gcc -o start ray-tracing.c $(sdl2-config --cflags --libs) -lm
