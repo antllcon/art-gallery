@@ -6,9 +6,10 @@
 #define COLOR_BLACK 0x00000000
 #define COLOR_WHITE 0xffffffff
 #define COLOR_YELLOW 0xffffff00
-#define RAYS_NUMBER 120
+#define CIRCLE_RADIUS 1
+#define RAYS_NUMBER 1200
 #define RAY_THICKNESS 2
-#define MAX_VERTICES 120
+#define MAX_VERTICES 100
 #define M_PI 3.14159265358979323846
 
 #include <SDL2/SDL.h>
@@ -97,23 +98,31 @@ void FillCircle(SDL_Surface* surface, const struct Circle circle, Uint32 color)
 	}
 }
 
-void FillPolygon(SDL_Surface* surface, const struct Polygon* polygon, Uint32 color)
+void DrawPolygon(SDL_Surface* surface, const struct Polygon* polygon, Uint32 color)
 {
 	for (int i = 0; i < polygon->vertex_count; i++)
 	{
-		int next_i = (i + 1) % polygon->vertex_count; // Следующая вершина (замыкаем полигон)
+		// Определяем следующую координату ( с замыканием )
+		int next_i = (i + 1) % polygon->vertex_count;
+
+		// Текущий узел графа
 		double x1 = polygon->vertices[i].x;
 		double y1 = polygon->vertices[i].y;
+
+		// Следующий узел графа
 		double x2 = polygon->vertices[next_i].x;
 		double y2 = polygon->vertices[next_i].y;
 
-		// Рисуем линию между вершинами
+		// Определяем приращение
 		double dx = x2 - x1;
 		double dy = y2 - y1;
+
+		// Ищем наибольшее для нормализации в точку
 		double steps = fmax(fabs(dx), fabs(dy));
 		double x_inc = dx / steps;
 		double y_inc = dy / steps;
 
+		// Отрисовка следущей соседней точки
 		double x = x1;
 		double y = y1;
 		for (int j = 0; j <= steps; j++)
@@ -146,7 +155,6 @@ int IsPointInsidePolygon(double x, double y, const struct Polygon* polygon)
 		double xj = polygon->vertices[j].x;
 		double yj = polygon->vertices[j].y;
 
-		// Проверяем пересечение луча с ребром полигона
 		if ((yi > y) != (yj > y))
 		{
 			double intersect_x = (xj - xi) * (y - yi) / (yj - yi) + xi;
@@ -185,10 +193,8 @@ void FillRays(
 				break;
 			}
 
-			// Проверяем, находится ли текущая точка внутри полигона
+			// Проверка на выход из полигона
 			int currently_inside = IsPointInsidePolygon(x_draw, y_draw, polygon);
-
-			// Если луч был снаружи и вошел в полигон, останавливаем его
 			if (!inside_polygon && currently_inside)
 			{
 				end_of_screen = 1;
@@ -202,7 +208,6 @@ void FillRays(
 				SDL_FillRect(surface, &ray_point, color);
 			}
 
-			// Обновляем состояние inside_polygon
 			inside_polygon = currently_inside;
 		}
 	}
@@ -215,7 +220,7 @@ int main()
 	InitSDL(&app, WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	SDL_Rect erase_rect = (SDL_Rect){ 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
-	struct Circle circle = { 200, 200, 10 };
+	struct Circle circle = { 200, 200, CIRCLE_RADIUS };
 
 	struct Polygon polygon = { .vertices
 		= { { 578, 316 }, { 607, 419 }, { 585, 427 }, { 601, 454 }, { 566, 452 }, { 428, 366 },
@@ -248,7 +253,7 @@ int main()
 		}
 		SDL_FillRect(app.surface, &erase_rect, COLOR_BLACK);
 
-		FillPolygon(app.surface, &polygon, COLOR_WHITE);
+		DrawPolygon(app.surface, &polygon, COLOR_WHITE);
 		FillRays(app.surface, rays, COLOR_YELLOW, &polygon);
 		FillCircle(app.surface, circle, COLOR_YELLOW);
 
