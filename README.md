@@ -6,7 +6,8 @@ __Математичекая модель__ — Для простого мног
 
 ### Дополнительно
 
-Ссылка на курсовую работу - [текущая версия](https://docs.google.com/document/d/1HfxGMp0xN-bjcSNZZZLs98nSxar6FJbmPYKOmIw4tqM/edit?usp=sharing) 
+Ссылка на курсовую работу (неактуально) - [текущая версия](https://docs.google.com/document/d/1HfxGMp0xN-bjcSNZZZLs98nSxar6FJbmPYKOmIw4tqM/edit?usp=sharing).
+Онлайн платформа не имеет полного функционала для описания формул и выражений. 
 
 ### Компиляция
 
