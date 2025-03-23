@@ -1,13 +1,13 @@
 #define WINDOW_WIDTH 900
 #define WINDOW_HEIGHT 600
-#define DELAY 5
+#define DELAY 1
 #define INIT_RUNNING 1
 #define STOP_RUNNING 0
-#define COLOR_BLACK 0x00000000
+#define COLOR_BLACK 0x001e1e1e
 #define COLOR_WHITE 0xffffffff
 #define COLOR_YELLOW 0xffffff00
 #define CIRCLE_RADIUS 1
-#define RAYS_NUMBER 1200
+#define RAYS_NUMBER 360
 #define RAY_THICKNESS 2
 #define MAX_VERTICES 100
 #define M_PI 3.14159265358979323846
@@ -55,8 +55,7 @@ void InitSDL(App* app, int width, int height)
 		exit(EXIT_FAILURE);
 	}
 
-	app->window = SDL_CreateWindow("Museum guards", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		width, height, SDL_WINDOW_SHOWN);
+	app->window = SDL_CreateWindow("Museum guards", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN);
 	if (app->window == NULL)
 	{
 		printf("Init error SDL: %s\n", SDL_GetError());
@@ -91,7 +90,7 @@ void FillCircle(SDL_Surface* surface, const struct Circle circle, Uint32 color)
 			double distance_squared = pow(x - circle.x, 2) + pow(y - circle.y, 2);
 			if (distance_squared < radius_squared)
 			{
-				SDL_Rect pixel = (SDL_Rect){ x, y, 1, 1 };
+				SDL_Rect pixel = (SDL_Rect){x, y, 1, 1};
 				SDL_FillRect(surface, &pixel, color);
 			}
 		}
@@ -127,7 +126,7 @@ void DrawPolygon(SDL_Surface* surface, const struct Polygon* polygon, Uint32 col
 		double y = y1;
 		for (int j = 0; j <= steps; j++)
 		{
-			SDL_Rect pixel = (SDL_Rect){ x, y, 1, 1 };
+			SDL_Rect pixel = (SDL_Rect){x, y, 1, 1};
 			SDL_FillRect(surface, &pixel, color);
 			x += x_inc;
 			y += y_inc;
@@ -140,7 +139,7 @@ void GenerateRays(struct Circle circle, struct Ray rays[RAYS_NUMBER])
 	for (int i = 0; i < RAYS_NUMBER; i++)
 	{
 		double angle = ((double)i / RAYS_NUMBER) * 2 * M_PI;
-		struct Ray ray = { circle.x, circle.y, angle };
+		struct Ray ray = {circle.x, circle.y, angle};
 		rays[i] = ray;
 	}
 }
@@ -204,7 +203,7 @@ void FillRays(
 			// Рисуем луч только вне полигона
 			if (currently_inside)
 			{
-				SDL_Rect ray_point = (SDL_Rect){ x_draw, y_draw, RAY_THICKNESS, RAY_THICKNESS };
+				SDL_Rect ray_point = (SDL_Rect){x_draw, y_draw, RAY_THICKNESS, RAY_THICKNESS};
 				SDL_FillRect(surface, &ray_point, color);
 			}
 
@@ -219,15 +218,12 @@ int main()
 	memset(&app, 0, sizeof(App));
 	InitSDL(&app, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-	SDL_Rect erase_rect = (SDL_Rect){ 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
-	struct Circle circle = { 200, 200, CIRCLE_RADIUS };
+	SDL_Rect erase_rect = (SDL_Rect){0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
+	struct Circle circle = {200, 200, CIRCLE_RADIUS};
 
-	struct Polygon polygon = { .vertices
-		= { { 578, 316 }, { 607, 419 }, { 585, 427 }, { 601, 454 }, { 566, 452 }, { 428, 366 },
-			{ 388, 470 }, { 311, 490 }, { 292, 292 }, { 274, 387 }, { 200, 453 }, { 167, 397 },
-			{ 176, 384 }, { 175, 275 }, { 119, 259 }, { 223, 256 }, { 206, 189 }, { 202, 53 },
-			{ 216, 49 }, { 366, 381 }, { 466, 132 }, { 517, 120 }, { 480, 187 }, { 499, 198 } },
-		.vertex_count = 24 };
+	struct Polygon polygon = {.vertices
+		= {{578, 316}, {607, 419}, {585, 427}, {601, 454}, {566, 452}, {428, 366}, {388, 470}, {311, 490}, {292, 292}, {274, 387}, {200, 453}, {167, 397}, {176, 384}, {175, 275}, {119, 259}, {223, 256}, {206, 189}, {202, 53}, {216, 49}, {366, 381}, {466, 132}, {517, 120}, {480, 187}, {499, 198}},
+		.vertex_count = 24};
 
 	struct Ray rays[RAYS_NUMBER];
 	GenerateRays(circle, rays);
