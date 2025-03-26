@@ -73,8 +73,11 @@ void App::Render(sf::RenderWindow& window)
 
 void App::HandleMenuEvents(sf::RenderWindow& window)
 {
+	inputHandler.ProcessInput();
+	// придумать меню
 }
 
 void App::HandlePlayEvents()
 {
+	// написать структуру для цикла алгоритма
 }
