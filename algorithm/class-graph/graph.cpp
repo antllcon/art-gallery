@@ -3,16 +3,6 @@
 #include <fstream>
 #include <numeric>
 
-TimeMatrix Graph::CreateTimeCopy() const { return TimeMatrix(vertexCount); }
-
-Component Graph::ReverseSortExitTime(TimeMatrix& matrix) const
-{
-	Component vertexes(vertexCount);
-	std::iota(vertexes.begin(), vertexes.end(), 0);
-	std::sort(vertexes.begin(), vertexes.end(), [&](int a, int b) { return matrix[a].exitTime > matrix[b].exitTime; });
-	return vertexes;
-}
-
 Graph::Graph(int numberVertices, bool isDirected)
 	: vertexCount(numberVertices)
 	, matrix(numberVertices, std::vector<int>(numberVertices, 0))
@@ -41,6 +31,16 @@ Graph::Graph(const AdjacencyMatrix& adjacencyMatrix, bool isDirected)
 			throw std::invalid_argument("Матрица смежности должна быть квадратной");
 		}
 	}
+}
+
+TimeMatrix Graph::CreateTimeCopy() const { return TimeMatrix(vertexCount); }
+
+Component Graph::ReverseSortExitTime(TimeMatrix& matrix) const
+{
+	Component vertexes(vertexCount);
+	std::iota(vertexes.begin(), vertexes.end(), 0);
+	std::sort(vertexes.begin(), vertexes.end(), [&](int a, int b) { return matrix[a].exitTime > matrix[b].exitTime; });
+	return vertexes;
 }
 
 void Graph::AssertIsCoordsInRange(int x, int y) const
@@ -97,6 +97,11 @@ AdjacencyMatrix Graph::TranspositionMatrix(const AdjacencyMatrix& matrix) const
 		}
 	}
 	return transposed;
+}
+
+int Graph::GetVertexCount() const
+{
+	return vertexCount;
 }
 
 void Graph::DFS(int i, const AdjacencyMatrix& matrix, TimeMatrix& timeMatrix, int& currentTime, Component* component = nullptr)

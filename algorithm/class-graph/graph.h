@@ -43,6 +43,19 @@ using ListEdge = std::vector<Edge>;
 /// @brief Класс граф
 class Graph
 {
+public:
+	Graph(int numberVertices, bool isDirected = false);
+	Graph(const AdjacencyMatrix& adjacencyMatrix, bool isDirected = false);
+
+	void AddEdge(int from, int to, int value = 1);
+	void RemoveEdge(int from, int to);
+	const AdjacencyMatrix& GetMatrix(void) const;
+	int GetVertexCount() const;
+	Graph GetInvertGraph() const;
+	TimeMatrix DFSWithTimestamps();
+	Components GetStrongComponentsKosaraju();
+
+private:
 	AdjacencyMatrix matrix;
 	int vertexCount;
 	bool isDirected;
@@ -53,17 +66,6 @@ class Graph
 	AdjacencyMatrix TranspositionMatrix(const AdjacencyMatrix& matrix) const;
 	void DFS(int i, const AdjacencyMatrix& matrix, TimeMatrix& TimeMatrix, int& currentTime, Component* component);
 	Components DFSWithCollectComponents(const Component& sortedVertexes, AdjacencyMatrix& transpositionMatrix);
-
-public:
-	Graph(int numberVertices, bool isDirected = false);
-	Graph(const AdjacencyMatrix& adjacencyMatrix, bool isDirected = false);
-
-	void AddEdge(int from, int to, int value = 1);
-	void RemoveEdge(int from, int to);
-	const AdjacencyMatrix& GetMatrix(void) const;
-	Graph GetInvertGraph() const;
-	TimeMatrix DFSWithTimestamps();
-	Components GetStrongComponentsKosaraju();
 };
 
 /// @brief Класс адаптер
