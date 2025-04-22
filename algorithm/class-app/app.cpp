@@ -1,4 +1,5 @@
-#include "App.h"
+#include "app.h"
+#include "../class-graph/graph.h"
 #include "../config.h"
 
 App::App()
@@ -22,7 +23,7 @@ void App::SetState(AppState newState)
 	state = newState;
 }
 
-void App::CheckCloseApp(sf::RenderWindow& window)
+void App::CheckCloseApp(sf::RenderWindow& window, const sf::Event& event)
 {
 	if (event.type == sf::Event::Closed)
 	{
@@ -31,36 +32,41 @@ void App::CheckCloseApp(sf::RenderWindow& window)
 	}
 }
 
-void App::ProcessEvents(sf::RenderWindow& window)
+void App::ProcessEvents(sf::RenderWindow& window, Graph& grpah)
 {
-	CheckCloseApp(window);
-
-	switch (state)
+	sf::Event event;
+	while (window.pollEvent(event))
 	{
-	case (AppState::Menu):
-		HandleMenuEvents(window);
-		break;
+		CheckCloseApp(window, event);
 
-	case (AppState::Play):
-		HandlePlayEvents();
-		break;
+		switch (state)
+		{
+		case (AppState::Menu):
+			HandleMenuEvents(window);
+			break;
 
-	default:
-		throw std::runtime_error("Отсутствие состояния приложения");
-		break;
+		case (AppState::Play):
+			HandlePlayEvents();
+			break;
+
+		default:
+			throw std::runtime_error("Отсутствие состояния приложения");
+			break;
+		}
 	}
 }
 
-void App::Render(sf::RenderWindow& window)
+void App::Render(sf::RenderWindow& window, Graph& graph)
 {
 	switch (state)
 	{
 	case (AppState::Menu):
-		window.clear(COLOR_BLACK);
+		window.clear(color::BLACK);
+		graph.Draw(window);
 		break;
 
 	case (AppState::Play):
-		window.clear(COLOR_BLACK);
+		window.clear(color::BLACK);
 		break;
 
 	default:
