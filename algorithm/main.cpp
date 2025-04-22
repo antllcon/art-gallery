@@ -32,7 +32,7 @@ int main()
 	try
 	{
 		// Инициализация приложения
-		sf::RenderWindow window(sf::VideoMode(screen::WIDTH, screen::HEIGHT), "Pixel Poem");
+		sf::RenderWindow window(sf::VideoMode(screen::WIDTH, screen::HEIGHT), "Art Gallary Problem");
 		App app;
 
 		// Создание графа из файла

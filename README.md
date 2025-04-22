@@ -13,5 +13,6 @@ __Математичекая модель__ — Для простого мног
 
 Пример обзора охранника на языке C (демонстрация трассировки)
 ```
+    cd algorithm/c-example/
     gcc -o start ray-tracing.c $(sdl2-config --cflags --libs) -lm
 ```
