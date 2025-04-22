@@ -37,7 +37,7 @@ int main()
 
 		// Создание графа из файла
 		FileToGraphAdapter adapter;
-		Graph artGallery = adapter.ConvertEdgeListToMatrix("data.txt");
+		Graph artGallery = adapter.ConvertEdgeListToMatrix("../examples-polygon/data.txt");
 
 		// Вывод графа
 		std::cout << artGallery << std::endl;
