@@ -42,6 +42,9 @@ int main()
 		// Вывод графа
 		std::cout << artGallery << std::endl;
 
+		// Поиск охранников
+		Guards guards = GetGuards(artGallery);
+
 		// Цикл приложения
 		while (window.isOpen())
 		{

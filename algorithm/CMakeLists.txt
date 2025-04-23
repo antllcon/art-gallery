@@ -13,6 +13,7 @@ find_package(SFML 2.5 COMPONENTS graphics REQUIRED)
 # Добавьте исходные файлы
 add_executable(museum-guards
     main.cpp
+    visibility/src/visilibity.cpp
     class-graph/graph.cpp
     class-app/app.cpp
     class-input/input.cpp
@@ -26,4 +27,5 @@ target_include_directories(museum-guards PRIVATE
     ${CMAKE_SOURCE_DIR}/class-graph
     ${CMAKE_SOURCE_DIR}/class-app
     ${CMAKE_SOURCE_DIR}/class-input
+    ${CMAKE_SOURCE_DIR}/visibility/src
 )
