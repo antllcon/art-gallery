@@ -1,5 +1,6 @@
 #include "graph.h"
 #include "../config.h"
+#include "../visibility/src/visilibity.hpp"
 #include <SFML/Graphics.hpp>
 #include <algorithm>
 #include <cmath>
@@ -15,12 +16,13 @@ Graph::Graph(const AdjacencyMatrix& adjacencyMatrix, const Coordinates& coordina
 	AssertIsCoordinatesExist();
 	AssertIsEqualSize();
 
-	// TODO: Подумать над методом update, когда меняю значения
-
 	// Установка визуализации
-	m_polygon.setFillColor(color::TRANSPARENT);
+	m_polygon.setFillColor(color::DARK);
 	m_polygon.setOutlineColor(color::WHITE);
-	m_polygon.setOutlineThickness(3);
+	m_polygon.setOutlineThickness(constants::THICKNESS);
+
+	// Вычисление смещения
+	std::tie(m_offsetX, m_offsetY) = CalculateGraphOffset();
 
 	// Установка геометрии
 	size_t numberVertices = coordinates.size();
@@ -28,8 +30,25 @@ Graph::Graph(const AdjacencyMatrix& adjacencyMatrix, const Coordinates& coordina
 
 	for (size_t i = 0; i < numberVertices; ++i)
 	{
-		m_polygon.setPoint(i, {static_cast<float>(coordinates[i].first), static_cast<float>(coordinates[i].second)});
+		m_polygon.setPoint(i, {static_cast<float>(m_coordinates[i].first) + m_offsetX, static_cast<float>(m_coordinates[i].second) + m_offsetY});
 	}
+
+	// Формат вершины
+	m_vertex.setRadius(constants::RADIUS);
+	m_vertex.setFillColor(color::GREEN);
+	m_vertex.setOutlineColor(color::WHITE);
+	m_vertex.setOutlineThickness(constants::THICKNESS);
+
+	// Загрузка шрифта
+	if (!m_font.loadFromFile(fonts::CASCADILIA_MONO))
+	{
+		throw std::runtime_error("Не удалось загрузить шрифт");
+	}
+
+	// Формат текста
+	m_text.setFont(m_font);
+	m_text.setCharacterSize(text::SIZE);
+	m_text.setFillColor(color::BLACK);
 }
 
 AdjacencyMatrix Graph::GetMatrix(void) const
@@ -78,10 +97,23 @@ Components Graph::GetViewComponents() const
 	// 2. Построим полную матрицу видимости
 	auto visibilityMatrix = GetViewMatrix(grpahEdges);
 
-	// 3. Поиск связных компонент в графе видимости (DFS)
-	auto visibilityComponents = FindConnectedComponents(visibilityMatrix, m_coordinates);
+	std::cout << "\nМатрица видимости: " << '\n';
 
-	return visibilityComponents;
+	for (const auto& row : visibilityMatrix)
+	{
+		for (int value : row)
+		{
+			std::cout << value << ' ';
+		}
+		std::cout << '\n';
+	}
+
+	// 3. Поиск связных компонент в графе видимости (DFS)
+	// auto visibilityComponents = FindConnectedComponents(visibilityMatrix, m_coordinates);
+
+	// return visibilityComponents;
+
+	return components;
 }
 
 // Получение веерных графов
@@ -128,62 +160,47 @@ bool Graph::AreEdgesInteract(const Edge& a, const Edge& b) const
 	return isCrossingFirst && isCrossingSecond;
 }
 
-// TODO: подумать, возможно стоит по-другому рисовать
-void Graph::Draw(sf::RenderWindow& window) const
+void Graph::Draw(sf::RenderWindow& window)
 {
-	// Вычисление границ графа
-	int minX = m_coordinates[0].first, maxX = m_coordinates[0].first;
-	int minY = m_coordinates[0].second, maxY = m_coordinates[0].second;
-
-	for (const auto& vertex : m_coordinates)
-	{
-		minX = std::min(minX, vertex.first);
-		maxX = std::max(maxX, vertex.first);
-		minY = std::min(minY, vertex.second);
-		maxY = std::max(maxY, vertex.second);
-	}
-
-	// Центр графа
-	float centerX = (minX + maxX) / 2.0f;
-	float centerY = (minY + maxY) / 2.0f;
-
-	// Центр окна
-	float windowCenterX = screen::WIDTH / 2.0f;
-	float windowCenterY = screen::HEIGHT / 2.0f;
-
-	// Смещение для центрирования графа
-	float offsetX = windowCenterX - centerX;
-	float offsetY = windowCenterY - centerY;
+	window.draw(m_polygon);
 
 	// Отрисовка рёбер
-	sf::VertexArray edges(sf::Lines);
-	for (size_t i = 0; i < m_matrix.size(); ++i)
-	{
-		for (size_t j = i + 1; j < m_matrix.size(); ++j)
-		{
-			if (m_matrix[i][j] == constants::EXIST)
-			{
-				edges.append(sf::Vertex(
-					sf::Vector2f(static_cast<float>(m_coordinates[i].first) + offsetX,
-						static_cast<float>(m_coordinates[i].second) + offsetY),
-					color::WHITE));
-				edges.append(sf::Vertex(
-					sf::Vector2f(static_cast<float>(m_coordinates[j].first) + offsetX,
-						static_cast<float>(m_coordinates[j].second) + offsetY),
-					color::WHITE));
-			}
-		}
-	}
-	window.draw(edges);
+	// sf::VertexArray edges(sf::Lines);
+	// for (size_t i = 0; i < m_matrix.size(); ++i)
+	// {
+	// 	for (size_t j = i + 1; j < m_matrix.size(); ++j)
+	// 	{
+	// 		if (m_matrix[i][j] == constants::EXIST)
+	// 		{
+	// 			// Добавляем вершины рёбер с учётом смещения
+	// 			edges.append(sf::Vertex(
+	// 				sf::Vector2f(static_cast<float>(m_coordinates[i].first) + m_offsetX,
+	// 					static_cast<float>(m_coordinates[i].second) + m_offsetY),
+	// 				color::WHITE));
+	// 			edges.append(sf::Vertex(
+	// 				sf::Vector2f(static_cast<float>(m_coordinates[j].first) + m_offsetX,
+	// 					static_cast<float>(m_coordinates[j].second) + m_offsetY),
+	// 				color::WHITE));
+	// 		}
+	// 	}
+	// }
+	// window.draw(edges);
 
 	// Отрисовка вершин
-	for (const auto& vertex : m_coordinates)
+	for (size_t i = 0; i < m_coordinates.size(); ++i)
 	{
-		sf::CircleShape vertexShape(6); // Радиус вершины
-		vertexShape.setFillColor(color::GREEN);
-		vertexShape.setPosition(static_cast<float>(vertex.first) + offsetX - 6,
-			static_cast<float>(vertex.second) + offsetY - 6);
-		window.draw(vertexShape);
+		const auto& vertex = m_coordinates[i];
+
+		// Отрисовка кружка
+		m_vertex.setPosition(static_cast<float>(vertex.first) + m_offsetX - m_vertex.getRadius(),
+			static_cast<float>(vertex.second) + m_offsetY - m_vertex.getRadius());
+		window.draw(m_vertex);
+
+		// Отрисовка номера вершины
+		m_text.setString(std::to_string(i + 1));
+		m_text.setPosition(static_cast<float>(vertex.first) + m_offsetX - 4,
+			static_cast<float>(vertex.second) + m_offsetY - 8);
+		window.draw(m_text);
 	}
 }
 
@@ -231,7 +248,7 @@ void Graph::AssertIsMatrixSquare() const
 
 void Graph::AssertIsValidEdge(size_t from, size_t to) const
 {
-	if (from >= m_matrix.size() || to >= m_matrix.size() || from < 0 || to < 0)
+	if (from >= m_matrix.size() || to >= m_matrix.size())
 	{
 		throw std::runtime_error("Неверный номер вершины");
 	}
@@ -289,7 +306,7 @@ ListEdge Graph::CollectEdges() const
 		{
 			if (m_matrix[i][j] == constants::EXIST)
 			{
-				edges.push_back({m_coordinates[i], m_coordinates[j]});
+				edges.emplace_back(Edge{m_coordinates[i], m_coordinates[j]});
 			}
 		}
 	}
@@ -302,15 +319,49 @@ AdjacencyMatrix Graph::GetViewMatrix(const ListEdge& graphEdges) const
 	size_t n = m_coordinates.size();
 	AdjacencyMatrix viewMatrix(n, std::vector<size_t>(n, constants::EMPTY));
 
+	GraphToEnvironment adapter;
+	std::vector<Coordinates> holes = {};
+	VisiLibity::Environment env = adapter.CreateEnvironment(m_coordinates, holes);
+
+	VisiLibity::Visibility_Graph viewGraph(env, 1e-6);
+
 	for (size_t i = 0; i < n; ++i)
 	{
-		// 2.1 Сортировка других вершин по возрастанию угла около текущей вершины
-		auto cands = SortCandidates(i);
-
-		// 2.2 Обход кандидатов в порядке возрастания угла
-		// Здесь должна быть логика Case1/Case2 из Вельцла
-		UpdateViewMatrix(i, cands, graphEdges, viewMatrix);
+		for (size_t j = i + 1; j < n; ++j)
+		{
+			if (AreVerticesVisible(viewGraph, i, j))
+			{
+				viewMatrix[i][j] = viewMatrix[j][i] = constants::EXIST;
+			}
+		}
 	}
+
+	// std::cout << std::endl
+	//		  << "== Вывод кандидатов для вершин ==" << std::endl;
+	// for (size_t i = 0; i < n; ++i)
+	// {
+	// 	// В теории работает, подумать надо ли это вообще
+	// 	// 2.1 Сортировка других вершин по возрастанию угла около текущей вершины
+	// 	auto cands = SortCandidates(i);
+	// 	size_t sizeCands = cands.size();
+
+	// 	std::cout << "Для вершины №" << i + 1 << " = [";
+	// 	for (size_t test = 0; test < sizeCands; ++test)
+	// 	{
+	// 		std::cout << cands[test].index + 1;
+	// 		if (test != sizeCands - 1)
+	// 		{
+	// 			std::cout << ", ";
+	// 		}
+	// 	}
+	// 	std::cout << "]" << std::endl;
+
+	// 	// Вывод кандидатов текущей вершины
+
+	// 	// 2.2 Обход кандидатов в порядке возрастания угла
+	// 	// Здесь должна быть логика Case1/Case2 из Вельцла
+	// 	UpdateViewMatrix(i, cands, graphEdges, viewMatrix);
+	// }
 	return viewMatrix;
 }
 
@@ -322,10 +373,19 @@ CandidateList Graph::SortCandidates(const size_t i) const
 	candidates.reserve(n - 1);
 	const Vertex& vi = m_coordinates[i];
 
-	for (size_t j = 0; j < n && i != j; ++j)
+	for (size_t j = 0; j < n; ++j)
 	{
+		if (i == j)
+		{
+			continue;
+		}
+
 		const Vertex& vj = m_coordinates[j];
 		double angle = std::atan2(vj.second - vi.second, vj.first - vi.first);
+
+		// Нормализуем угол в диапазон [0, 2π]
+		double normalizedAngle = (angle < 0) ? angle + 2 * M_PI : angle;
+
 		candidates.push_back({j, angle});
 	}
 
@@ -448,6 +508,40 @@ Graph Graph::CreateComponent(const NumberList& componentVertices, const Adjacenc
 	return Graph(componentAdjacencyMatrix, componentCoordinates);
 }
 
+std::pair<float, float> Graph::CalculateGraphOffset() const
+{
+	// Вычисление границ графа
+	int minX = m_coordinates[0].first, maxX = m_coordinates[0].first;
+	int minY = m_coordinates[0].second, maxY = m_coordinates[0].second;
+
+	for (const auto& vertex : m_coordinates)
+	{
+		minX = std::min(minX, vertex.first);
+		maxX = std::max(maxX, vertex.first);
+		minY = std::min(minY, vertex.second);
+		maxY = std::max(maxY, vertex.second);
+	}
+
+	// Центр графа
+	float centerX = (minX + maxX) / 2.0f;
+	float centerY = (minY + maxY) / 2.0f;
+
+	// Центр окна
+	float windowCenterX = screen::WIDTH / 2.0f;
+	float windowCenterY = screen::HEIGHT / 2.0f;
+
+	// Смещение для центрирования графа
+	float offsetX = windowCenterX - centerX;
+	float offsetY = windowCenterY - centerY;
+
+	return {offsetX, offsetY};
+}
+
+bool Graph::AreVerticesVisible(const VisiLibity::Visibility_Graph& viewGraph, const size_t i, const size_t j) const
+{
+	return viewGraph(i, j);
+}
+
 Graph FileToGraphAdapter::ConvertEdgeListToMatrix(const std::string& fileName)
 {
 	std::ifstream file(fileName);
@@ -527,6 +621,36 @@ void FileToGraphAdapter::AssertIsValidNumbers(size_t from, size_t to, size_t mat
 	{
 		throw std::runtime_error("Некорректные номера вершин");
 	}
+}
+
+VisiLibity::Environment GraphToEnvironment::CreateEnvironment(const Coordinates& vertices, const std::vector<Coordinates>& holes)
+{
+	// Внешний контур (оболочка)
+	std::vector<VisiLibity::Point> outerPoints;
+	for (const auto& [x, y] : vertices)
+	{
+		outerPoints.emplace_back(static_cast<double>(x), static_cast<double>(y));
+	}
+	VisiLibity::Polygon outerBoundary(outerPoints);
+
+	// Отверстия
+	std::vector<VisiLibity::Polygon> holePolygons;
+	for (const auto& hole : holes)
+	{
+		std::vector<VisiLibity::Point> holePoints;
+		for (const auto& [x, y] : hole)
+		{
+			holePoints.emplace_back(static_cast<double>(x), static_cast<double>(y));
+		}
+		holePolygons.emplace_back(holePoints);
+	}
+
+	// Создание окружения
+	std::vector<VisiLibity::Polygon> polygons;
+	polygons.push_back(outerBoundary);										   // Внешний контур
+	polygons.insert(polygons.end(), holePolygons.begin(), holePolygons.end()); // Отверстия
+
+	return VisiLibity::Environment(polygons);
 }
 
 std::ostream& operator<<(std::ostream& os, const Graph& graph)

@@ -1,6 +1,7 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
+#include "../visibility/src/visilibity.hpp"
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <set>
@@ -70,9 +71,10 @@ public:
 	Components GetViewComponents() const;
 	SetList GetFunGraphs(const Components& viewComponents);
 	bool AreEdgesInteract(const Edge& a, const Edge& b) const;
+	bool AreVerticesVisible(const VisiLibity::Visibility_Graph& viewGraph, const size_t i, const size_t j) const;
 
 	// SFML отрисовка
-	void Draw(sf::RenderWindow& window) const;
+	void Draw(sf::RenderWindow& window);
 
 private:
 	void AssertIsEqualSize() const;
@@ -92,11 +94,17 @@ private:
 	Components FindConnectedComponents(const AdjacencyMatrix& viewMatrix, const Coordinates& coordinates) const;
 	NumberList DFS(size_t vertex, size_t numberVertices, const AdjacencyMatrix& viewMatrix, std::vector<state>& visited) const;
 	Graph CreateComponent(const NumberList& componentVertices, const AdjacencyMatrix& viewMatrix, const Coordinates& coordinates) const;
+	std::pair<float, float> CalculateGraphOffset() const;
 
 private:
 	AdjacencyMatrix m_matrix;
 	Coordinates m_coordinates;
 	sf::ConvexShape m_polygon;
+	sf::CircleShape m_vertex;
+	float m_offsetX;
+	float m_offsetY;
+	sf::Font m_font;
+	sf::Text m_text;
 };
 
 /// @brief Класс адаптер
@@ -115,7 +123,14 @@ private:
 	void AssertIsValidNumbers(size_t from, size_t to, size_t matrixSize) const;
 };
 
+class GraphToEnvironment
+{
+public:
+	VisiLibity::Environment CreateEnvironment(const Coordinates& vertices, const std::vector<Coordinates>& holes);
+};
+
 // Перегрузка оператора вывода из потока для графа
-std::ostream& operator<<(std::ostream& os, const Graph& graph);
+std::ostream&
+operator<<(std::ostream& os, const Graph& graph);
 
 #endif // GRAPH_H
