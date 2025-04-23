@@ -16,3 +16,7 @@ __Математичекая модель__ — Для простого мног
     cd algorithm/c-example/
     gcc -o start ray-tracing.c $(sdl2-config --cflags --libs) -lm
 ```
+
+### Сторонние библиотеки
+This project uses the **VisiLibity** library (Copyright © 2008 Karl J. Obermeyer),  
+licensed under the [GNU LGPL v3+](https://www.gnu.org/licenses/lgpl.html).
