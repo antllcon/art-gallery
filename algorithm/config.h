@@ -32,6 +32,20 @@ namespace constants
 {
 inline constexpr size_t EXIST = 1;
 inline constexpr size_t EMPTY = 0;
+inline constexpr size_t THICKNESS = 2;
+inline constexpr size_t RADIUS = 10;
 } // namespace constants
+
+// === Шрифты ===
+namespace fonts
+{
+const std::string CASCADILIA_MONO = "../fonts/cascadia-mono.ttf";
+} // namespace fonts
+
+// === Текст ===
+namespace text
+{
+inline constexpr size_t SIZE = 12;
+} // namespace text
 
 #endif
