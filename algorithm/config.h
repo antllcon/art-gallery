@@ -34,6 +34,7 @@ inline constexpr size_t EXIST = 1;
 inline constexpr size_t EMPTY = 0;
 inline constexpr size_t THICKNESS = 2;
 inline constexpr size_t RADIUS = 10;
+inline constexpr double EPSILON = 1e-6;
 } // namespace constants
 
 // === Шрифты ===

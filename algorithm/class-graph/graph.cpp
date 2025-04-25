@@ -8,9 +8,10 @@
 #include <numeric>
 #include <stack>
 
-Graph::Graph(const AdjacencyMatrix& adjacencyMatrix, const Coordinates& coordinates)
+Graph::Graph(const AdjacencyMatrix& adjacencyMatrix, const Coordinates& coordinates, const SetList& holes)
 	: m_matrix(adjacencyMatrix)
 	, m_coordinates(coordinates)
+	, m_holes(holes)
 {
 	AssertIsMatrixValid();
 	AssertIsCoordinatesExist();
@@ -61,16 +62,9 @@ Coordinates Graph::GetCoordinates(void) const
 	return m_coordinates;
 }
 
-void Graph::AddEdge(size_t from, size_t to)
+Holes Graph::GetHoles(void) const
 {
-	AssertIsValidEdge(from, to);
-	m_matrix[from][to] = m_matrix[to][from] = constants::EXIST;
-}
-
-void Graph::RemoveEdge(size_t from, size_t to)
-{
-	AssertIsValidEdge(from, to);
-	m_matrix[from][to] = m_matrix[to][from] = constants::EMPTY;
+	return m_holes;
 }
 
 void Graph::SetMatrix(const AdjacencyMatrix& matrix)
@@ -86,16 +80,31 @@ void Graph::SetCoordinates(const Coordinates& coordinates)
 	AssertIsEqualSize();
 }
 
+void Graph::SetHoles(const Holes& holes)
+{
+	// TODO: добавить проверки
+	m_holes = holes;
+}
+
+void Graph::AddEdge(size_t from, size_t to)
+{
+	AssertIsValidEdge(from, to);
+	m_matrix[from][to] = m_matrix[to][from] = constants::EXIST;
+}
+
+void Graph::RemoveEdge(size_t from, size_t to)
+{
+	AssertIsValidEdge(from, to);
+	m_matrix[from][to] = m_matrix[to][from] = constants::EMPTY;
+}
+
 // Получение компонент видимости
 Components Graph::GetViewComponents() const
 {
 	Components components;
 
-	// 1. Предобработка = соберем ребра исходного графа
-	auto grpahEdges = CollectEdges();
-
-	// 2. Построим полную матрицу видимости
-	auto visibilityMatrix = GetViewMatrix(grpahEdges);
+	// 1. Построим полную матрицу видимости
+	auto visibilityMatrix = GetViewMatrix();
 
 	std::cout << "\nМатрица видимости: " << '\n';
 
@@ -108,8 +117,8 @@ Components Graph::GetViewComponents() const
 		std::cout << '\n';
 	}
 
-	// 3. Поиск связных компонент в графе видимости (DFS)
-	// auto visibilityComponents = FindConnectedComponents(visibilityMatrix, m_coordinates);
+	// 2. Поиск связных компонент в графе видимости (DFS)
+	auto visibilityComponents = FindConnectedComponents(visibilityMatrix, m_coordinates);
 
 	// return visibilityComponents;
 
@@ -256,6 +265,10 @@ void Graph::AssertIsValidEdge(size_t from, size_t to) const
 	{
 		throw std::runtime_error("Номера вершин совпадают");
 	}
+	if (m_matrix[from][to] == constants::EXIST)
+	{
+		throw std::runtime_error("Ребро уже существует");
+	}
 }
 
 // Проверка коллизии двух отрезков (их коробок)
@@ -294,40 +307,18 @@ int Graph::CrossProduct(const Vertex& a, const Vertex& b, const Vertex& c) const
 	return (b.first - a.first) * (c.second - a.second) - (b.second - a.second) * (c.first - a.first);
 }
 
-// Собираем все ребра графа
-ListEdge Graph::CollectEdges() const
+AdjacencyMatrix Graph::GetViewMatrix() const
 {
-	ListEdge edges;
 	size_t numberVertices = m_coordinates.size();
+	AdjacencyMatrix viewMatrix(numberVertices, std::vector<size_t>(numberVertices, constants::EMPTY));
+
+	GraphToEnvironment adapter;
+	VisiLibity::Environment environment = adapter.CreateEnvironment(m_coordinates, m_holes);
+	VisiLibity::Visibility_Graph viewGraph(environment, constants::EPSILON);
 
 	for (size_t i = 0; i < numberVertices; ++i)
 	{
 		for (size_t j = i + 1; j < numberVertices; ++j)
-		{
-			if (m_matrix[i][j] == constants::EXIST)
-			{
-				edges.emplace_back(Edge{m_coordinates[i], m_coordinates[j]});
-			}
-		}
-	}
-
-	return edges;
-}
-
-AdjacencyMatrix Graph::GetViewMatrix(const ListEdge& graphEdges) const
-{
-	size_t n = m_coordinates.size();
-	AdjacencyMatrix viewMatrix(n, std::vector<size_t>(n, constants::EMPTY));
-
-	GraphToEnvironment adapter;
-	std::vector<Coordinates> holes = {};
-	VisiLibity::Environment env = adapter.CreateEnvironment(m_coordinates, holes);
-
-	VisiLibity::Visibility_Graph viewGraph(env, 1e-6);
-
-	for (size_t i = 0; i < n; ++i)
-	{
-		for (size_t j = i + 1; j < n; ++j)
 		{
 			if (AreVerticesVisible(viewGraph, i, j))
 			{
@@ -440,7 +431,6 @@ Components Graph::FindConnectedComponents(const AdjacencyMatrix& viewMatrix, con
 {
 	Components components;
 	const size_t numberVertices = viewMatrix.size();
-	std::vector<state> visited(numberVertices, state::white);
 
 	for (size_t v = 0; v < numberVertices; ++v)
 	{
@@ -449,7 +439,7 @@ Components Graph::FindConnectedComponents(const AdjacencyMatrix& viewMatrix, con
 			continue;
 		}
 
-		auto componentVertices = DFS(v, numberVertices, viewMatrix, visited);
+		// auto componentVertices = DFS(v, numberVertices, viewMatrix, visited);
 		auto component = CreateComponent(componentVertices, viewMatrix, coordinates);
 		components.push_back(component);
 	}
@@ -490,7 +480,7 @@ NumberList Graph::DFS(size_t vertex, size_t numberVertices, const AdjacencyMatri
 Graph Graph::CreateComponent(const NumberList& componentVertices, const AdjacencyMatrix& viewMatrix, const Coordinates& coordinates) const
 {
 	Coordinates componentCoordinates;
-	AdjacencyMatrix componentAdjacencyMatrix(componentVertices.size());
+	AdjacencyMatrix componentAdjacencyMatrix(componentVertices.size(), std::vector<size_t>(componentVertices.size(), constants::EMPTY));
 
 	for (size_t i = 0; i < componentVertices.size(); ++i)
 	{
@@ -505,7 +495,7 @@ Graph Graph::CreateComponent(const NumberList& componentVertices, const Adjacenc
 			}
 		}
 	}
-	return Graph(componentAdjacencyMatrix, componentCoordinates);
+	return Graph(componentAdjacencyMatrix, componentCoordinates, m_holes);
 }
 
 std::pair<float, float> Graph::CalculateGraphOffset() const

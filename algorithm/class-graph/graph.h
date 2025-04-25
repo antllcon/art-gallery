@@ -53,18 +53,23 @@ using SetList = std::set<NumberList>;
 // Компоненты графа (малые графы)
 using Components = std::vector<Graph>;
 
+// Отверстия
+using Holes = std::vector<Coordinates>;
+
 /// @brief Класс граф
 class Graph
 {
 
 public:
-	Graph(const AdjacencyMatrix& adjacencyMatrix, const Coordinates& coordinates);
+	Graph(const AdjacencyMatrix& adjacencyMatrix, const Coordinates& coordinates, const SetList& holes);
 
 	// Геттеры и сеттеры
 	AdjacencyMatrix GetMatrix(void) const;
 	Coordinates GetCoordinates(void) const;
+	Holes GetHoles(void) const;
 	void SetMatrix(const AdjacencyMatrix& matrix);
 	void SetCoordinates(const Coordinates& coordinates);
+	void SetHoles(const Holes& holes);
 
 	void AddEdge(size_t from, size_t to);
 	void RemoveEdge(size_t from, size_t to);
@@ -86,9 +91,8 @@ private:
 	bool IsBoundBox(const Edge& a, const Edge& b) const;
 	bool ArePointsOpposite(const Vertex& a, const Vertex& b, const Vertex& c, const Vertex& d) const;
 	int CrossProduct(const Vertex& a, const Vertex& b, const Vertex& c) const;
-	ListEdge CollectEdges() const;
 	NumberList FindViewComponents(const size_t i, const Components& viewComponents) const;
-	AdjacencyMatrix GetViewMatrix(const ListEdge& graphEdges) const;
+	AdjacencyMatrix GetViewMatrix() const;
 	CandidateList SortCandidates(const size_t i) const;
 	void UpdateViewMatrix(const size_t i, const CandidateList& cands, const ListEdge& graphEdges, AdjacencyMatrix& viewMatrix) const;
 	Components FindConnectedComponents(const AdjacencyMatrix& viewMatrix, const Coordinates& coordinates) const;
@@ -99,12 +103,15 @@ private:
 private:
 	AdjacencyMatrix m_matrix;
 	Coordinates m_coordinates;
+	Holes m_holes;
+
+	// SFML
 	sf::ConvexShape m_polygon;
 	sf::CircleShape m_vertex;
-	float m_offsetX;
-	float m_offsetY;
 	sf::Font m_font;
 	sf::Text m_text;
+	float m_offsetX;
+	float m_offsetY;
 };
 
 /// @brief Класс адаптер
