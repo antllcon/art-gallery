@@ -7,8 +7,9 @@ project(MuseumGuards)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Установка пути к SFML
+# Установка пути к SFML и CGAL
 find_package(SFML 2.5 COMPONENTS graphics REQUIRED)
+find_package(CGAL REQUIRED COMPONENTS Core)
 
 # Добавьте исходные файлы
 add_executable(museum-guards
@@ -21,6 +22,7 @@ add_executable(museum-guards
 
 # Установка флагов компилятора
 target_link_libraries(museum-guards PRIVATE sfml-graphics)
+target_link_libraries(museum-guards PRIVATE CGAL::CGAL)
 
 # Директории с заголовочными файлами
 target_include_directories(museum-guards PRIVATE 
