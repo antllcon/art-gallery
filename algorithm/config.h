@@ -5,8 +5,8 @@
 // === Настройки экрана ===
 namespace screen
 {
-constexpr size_t WIDTH = 800;
-constexpr size_t HEIGHT = 600;
+constexpr size_t WIDTH = 1000;
+constexpr size_t HEIGHT = 1000;
 } // namespace screen
 
 // === Цветовые настройки ===
