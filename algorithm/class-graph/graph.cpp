@@ -8,8 +8,8 @@
 #include <numeric>
 #include <stack>
 
-Graph::Graph(const AdjacencyMatrix& adjacencyMatrix, const Coordinates& coordinates, const SetList& holes)
-	: m_matrix(adjacencyMatrix)
+Graph::Graph(const AdjacencyMatrix& matrix, const Coordinates& coordinates, const Holes& holes)
+	: m_matrix(matrix)
 	, m_coordinates(coordinates)
 	, m_holes(holes)
 {
@@ -106,19 +106,8 @@ Components Graph::GetViewComponents() const
 	// 1. Построим полную матрицу видимости
 	auto visibilityMatrix = GetViewMatrix();
 
-	std::cout << "\nМатрица видимости: " << '\n';
-
-	for (const auto& row : visibilityMatrix)
-	{
-		for (int value : row)
-		{
-			std::cout << value << ' ';
-		}
-		std::cout << '\n';
-	}
-
 	// 2. Поиск связных компонент в графе видимости (DFS)
-	auto visibilityComponents = FindConnectedComponents(visibilityMatrix, m_coordinates);
+	// auto visibilityComponents = FindConnectedComponents(visibilityMatrix, m_coordinates);
 
 	// return visibilityComponents;
 
@@ -133,7 +122,7 @@ SetList Graph::GetFunGraphs(const Components& viewComponents)
 
 	for (size_t i = 0; i < numberVertecies; ++i)
 	{
-		// Подумать должны ли компоненты видимости обрабатфватсья как графы
+		// Подумать должны ли компоненты видимости обрабатываться как графы
 		// Собираем все компоненты видимости, которые видны из текущей вершины
 		auto funGraph = FindViewComponents(i, viewComponents);
 		funGraphs.insert(funGraph);
@@ -171,29 +160,29 @@ bool Graph::AreEdgesInteract(const Edge& a, const Edge& b) const
 
 void Graph::Draw(sf::RenderWindow& window)
 {
-	window.draw(m_polygon);
+	// window.draw(m_polygon);
 
 	// Отрисовка рёбер
-	// sf::VertexArray edges(sf::Lines);
-	// for (size_t i = 0; i < m_matrix.size(); ++i)
-	// {
-	// 	for (size_t j = i + 1; j < m_matrix.size(); ++j)
-	// 	{
-	// 		if (m_matrix[i][j] == constants::EXIST)
-	// 		{
-	// 			// Добавляем вершины рёбер с учётом смещения
-	// 			edges.append(sf::Vertex(
-	// 				sf::Vector2f(static_cast<float>(m_coordinates[i].first) + m_offsetX,
-	// 					static_cast<float>(m_coordinates[i].second) + m_offsetY),
-	// 				color::WHITE));
-	// 			edges.append(sf::Vertex(
-	// 				sf::Vector2f(static_cast<float>(m_coordinates[j].first) + m_offsetX,
-	// 					static_cast<float>(m_coordinates[j].second) + m_offsetY),
-	// 				color::WHITE));
-	// 		}
-	// 	}
-	// }
-	// window.draw(edges);
+	sf::VertexArray edges(sf::Lines);
+	for (size_t i = 0; i < m_matrix.size(); ++i)
+	{
+		for (size_t j = i + 1; j < m_matrix.size(); ++j)
+		{
+			if (m_matrix[i][j] == constants::EXIST)
+			{
+				// Добавляем вершины рёбер с учётом смещения
+				edges.append(sf::Vertex(
+					sf::Vector2f(static_cast<float>(m_coordinates[i].first) + m_offsetX,
+						static_cast<float>(m_coordinates[i].second) + m_offsetY),
+					color::WHITE));
+				edges.append(sf::Vertex(
+					sf::Vector2f(static_cast<float>(m_coordinates[j].first) + m_offsetX,
+						static_cast<float>(m_coordinates[j].second) + m_offsetY),
+					color::WHITE));
+			}
+		}
+	}
+	window.draw(edges);
 
 	// Отрисовка вершин
 	for (size_t i = 0; i < m_coordinates.size(); ++i)
@@ -245,10 +234,9 @@ void Graph::AssertIsMatrixExist() const
 
 void Graph::AssertIsMatrixSquare() const
 {
-	size_t size = m_matrix.size();
 	for (const auto& row : m_matrix)
 	{
-		if (row.size() != size)
+		if (row.size() != m_matrix.size())
 		{
 			throw std::runtime_error("Матрица не квадратная");
 		}
@@ -307,53 +295,82 @@ int Graph::CrossProduct(const Vertex& a, const Vertex& b, const Vertex& c) const
 	return (b.first - a.first) * (c.second - a.second) - (b.second - a.second) * (c.first - a.first);
 }
 
+// Получить матрицу видимости
 AdjacencyMatrix Graph::GetViewMatrix() const
 {
-	size_t numberVertices = m_coordinates.size();
-	AdjacencyMatrix viewMatrix(numberVertices, std::vector<size_t>(numberVertices, constants::EMPTY));
+	// 1) Выполнить триангуляцию свободного пространства
+	auto cdt = PlaneSweepTriangulation();
 
-	GraphToEnvironment adapter;
-	VisiLibity::Environment environment = adapter.CreateEnvironment(m_coordinates, m_holes);
-	VisiLibity::Visibility_Graph viewGraph(environment, constants::EPSILON);
-
-	for (size_t i = 0; i < numberVertices; ++i)
+	// Проверяем, что триангуляция не пуста
+	if (cdt.number_of_vertices() == 0)
 	{
-		for (size_t j = i + 1; j < numberVertices; ++j)
-		{
-			if (AreVerticesVisible(viewGraph, i, j))
-			{
-				viewMatrix[i][j] = viewMatrix[j][i] = constants::EXIST;
-			}
-		}
+		throw std::runtime_error("Триангуляция не пустая");
 	}
 
-	// std::cout << std::endl
-	//		  << "== Вывод кандидатов для вершин ==" << std::endl;
-	// for (size_t i = 0; i < n; ++i)
-	// {
-	// 	// В теории работает, подумать надо ли это вообще
-	// 	// 2.1 Сортировка других вершин по возрастанию угла около текущей вершины
-	// 	auto cands = SortCandidates(i);
-	// 	size_t sizeCands = cands.size();
+	// 2) Построить видимость
+	return BuildView(cdt);
+}
 
-	// 	std::cout << "Для вершины №" << i + 1 << " = [";
-	// 	for (size_t test = 0; test < sizeCands; ++test)
-	// 	{
-	// 		std::cout << cands[test].index + 1;
-	// 		if (test != sizeCands - 1)
-	// 		{
-	// 			std::cout << ", ";
-	// 		}
-	// 	}
-	// 	std::cout << "]" << std::endl;
+CDT Graph::PlaneSweepTriangulation() const
+{
+	CDT cdt;
+	// Преобразуем координаты в CGAL-точки и храним вектор handle'ов
+	std::vector<CDT::Vertex_handle> handles;
+	for (const auto& coord : m_coordinates)
+	{
+		handles.push_back(cdt.insert(Point(coord.first, coord.second)));
+	}
 
-	// 	// Вывод кандидатов текущей вершины
+	// Добавляем ограничения (ребра) в виде constraint-ов
+	for (size_t i = 0; i < handles.size(); ++i)
+	{
+		cdt.insert_constraint(handles[i], handles[(i + 1) % handles.size()]);
+	}
 
-	// 	// 2.2 Обход кандидатов в порядке возрастания угла
-	// 	// Здесь должна быть логика Case1/Case2 из Вельцла
-	// 	UpdateViewMatrix(i, cands, graphEdges, viewMatrix);
-	// }
-	return viewMatrix;
+	return cdt;
+}
+
+AdjacencyMatrix Graph::BuildView(const CDT& cdt) const
+{
+	size_t n = m_coordinates.size();
+	AdjacencyMatrix view(n, std::vector<size_t>(n, constants::EMPTY));
+
+	if (cdt.number_of_vertices() == 0)
+		return view;
+
+	auto get_index = [&](const Point& p) -> size_t {
+		for (size_t i = 0; i < m_coordinates.size(); ++i)
+		{
+			if (std::abs(p.x() - m_coordinates[i].first) < constants::EPSILON && std::abs(p.y() - m_coordinates[i].second) < 1e-6)
+			{
+				return i;
+			}
+		}
+		throw std::runtime_error("Point not found in coordinates");
+	};
+
+	for (auto eit = cdt.finite_edges_begin(); eit != cdt.finite_edges_end(); ++eit)
+	{
+		auto edge = *eit;
+		auto face = edge.first;
+		int idx = edge.second;
+
+		auto vh1 = face->vertex(cdt.cw(idx));
+		auto vh2 = face->vertex(cdt.ccw(idx));
+
+		try
+		{
+			size_t i = get_index(vh1->point());
+			size_t j = get_index(vh2->point());
+			view[i][j] = constants::EXIST;
+			view[j][i] = constants::EXIST;
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << "Warning: " << e.what() << std::endl;
+		}
+	}
+	return view;
 }
 
 // Сортируем кандидатов по углу относительно текущей вершины
@@ -388,7 +405,6 @@ CandidateList Graph::SortCandidates(const size_t i) const
 }
 
 // Обновление матрицы видимости
-// Здесь должна быть логика Case1/Case2 из Вельцла
 void Graph::UpdateViewMatrix(const size_t i, const CandidateList& cands, const ListEdge& graphEdges, AdjacencyMatrix& viewMatrix) const
 {
 	const Vertex vi = m_coordinates[i];
@@ -427,76 +443,48 @@ void Graph::UpdateViewMatrix(const size_t i, const CandidateList& cands, const L
 }
 
 // Вспомогательная функция для поиска связных компонент графа видимости
-Components Graph::FindConnectedComponents(const AdjacencyMatrix& viewMatrix, const Coordinates& coordinates) const
-{
-	Components components;
-	const size_t numberVertices = viewMatrix.size();
+// Components Graph::FindConnectedComponents(const AdjacencyMatrix& viewMatrix, const Coordinates& coordinates) const
+// {
+// 	Components components;
+// 	const size_t numberVertices = viewMatrix.size();
+// 	VisitState visited(numberVertices, state::white);
 
-	for (size_t v = 0; v < numberVertices; ++v)
-	{
-		if (visited[v] != state::white)
-		{
-			continue;
-		}
+// 	for (size_t v = 0; v < numberVertices; ++v)
+// 	{
+// 		if (visited[v] != state::white)
+// 		{
+// 			continue;
+// 		}
 
-		// auto componentVertices = DFS(v, numberVertices, viewMatrix, visited);
-		auto component = CreateComponent(componentVertices, viewMatrix, coordinates);
-		components.push_back(component);
-	}
+// 		// auto componentVertices = DFS(v, numberVertices, viewMatrix, visited);
+// 		auto component = CreateComponent(componentVertices, viewMatrix, coordinates);
+// 		components.push_back(component);
+// 	}
 
-	return components;
-}
-
-// DFS для поиска всех вершин, достижимых из заданной
-NumberList Graph::DFS(size_t vertex, size_t numberVertices, const AdjacencyMatrix& viewMatrix, std::vector<state>& visited) const
-{
-	std::stack<size_t> stackBuffer;
-	stackBuffer.push(vertex);
-	visited[vertex] = state::gray;
-	NumberList componentVertices;
-
-	while (!stackBuffer.empty())
-	{
-		size_t currentVertex = stackBuffer.top();
-		stackBuffer.pop();
-		componentVertices.push_back(currentVertex);
-
-		for (size_t neighbor = 0; neighbor < numberVertices; ++neighbor)
-		{
-			if (viewMatrix[currentVertex][neighbor] == constants::EXIST && visited[neighbor] == state::white)
-			{
-				stackBuffer.push(neighbor);
-				visited[neighbor] = state::gray;
-			}
-		}
-
-		visited[currentVertex] = state::black;
-	}
-
-	return componentVertices;
-}
+// 	return components;
+// }
 
 // Создаёт Graph из списка номеров вершин компоненты
-Graph Graph::CreateComponent(const NumberList& componentVertices, const AdjacencyMatrix& viewMatrix, const Coordinates& coordinates) const
-{
-	Coordinates componentCoordinates;
-	AdjacencyMatrix componentAdjacencyMatrix(componentVertices.size(), std::vector<size_t>(componentVertices.size(), constants::EMPTY));
+// Graph Graph::CreateComponent(const NumberList& componentVertices, const AdjacencyMatrix& viewMatrix, const Coordinates& coordinates) const
+// {
+// 	Coordinates componentCoordinates;
+// 	AdjacencyMatrix componentAdjacencyMatrix(componentVertices.size(), std::vector<size_t>(componentVertices.size(), constants::EMPTY));
 
-	for (size_t i = 0; i < componentVertices.size(); ++i)
-	{
-		size_t originalNodeI = componentVertices[i];
-		componentCoordinates.push_back(coordinates[originalNodeI]);
-		for (size_t j = i + 1; j < componentVertices.size(); ++j)
-		{
-			size_t originalNodeJ = componentVertices[j];
-			if (viewMatrix[originalNodeI][originalNodeJ] == constants::EXIST)
-			{
-				componentAdjacencyMatrix[i][j] = componentAdjacencyMatrix[j][i] = constants::EXIST;
-			}
-		}
-	}
-	return Graph(componentAdjacencyMatrix, componentCoordinates, m_holes);
-}
+// 	for (size_t i = 0; i < componentVertices.size(); ++i)
+// 	{
+// 		size_t originalNodeI = componentVertices[i];
+// 		componentCoordinates.push_back(coordinates[originalNodeI]);
+// 		for (size_t j = i + 1; j < componentVertices.size(); ++j)
+// 		{
+// 			size_t originalNodeJ = componentVertices[j];
+// 			if (viewMatrix[originalNodeI][originalNodeJ] == constants::EXIST)
+// 			{
+// 				componentAdjacencyMatrix[i][j] = componentAdjacencyMatrix[j][i] = constants::EXIST;
+// 			}
+// 		}
+// 	}
+// 	return Graph(componentAdjacencyMatrix, componentCoordinates, m_holes);
+// }
 
 std::pair<float, float> Graph::CalculateGraphOffset() const
 {
@@ -541,6 +529,16 @@ Graph FileToGraphAdapter::ConvertEdgeListToMatrix(const std::string& fileName)
 	size_t matrixSize = SafeRead<size_t>(file, "Некорректное чтение аргумента (размер матрицы)");
 	AssertIsValidSize(matrixSize);
 
+	AdjacencyMatrix matrix = ReadAdjacencyMatrix(file, matrixSize);
+	Coordinates coordinates = ReadCoordinates(file, matrixSize);
+	Holes holes = DetectHoles(matrix, coordinates);
+
+	Graph graph(matrix, coordinates, holes);
+	return graph;
+}
+
+AdjacencyMatrix FileToGraphAdapter::ReadAdjacencyMatrix(std::ifstream& file, size_t matrixSize) const
+{
 	AdjacencyMatrix matrix(matrixSize, std::vector<size_t>(matrixSize, constants::EMPTY));
 
 	size_t from, to;
@@ -555,7 +553,11 @@ Graph FileToGraphAdapter::ConvertEdgeListToMatrix(const std::string& fileName)
 	}
 
 	AssertIsStreamCorrect(file);
+	return matrix;
+}
 
+Coordinates FileToGraphAdapter::ReadCoordinates(std::ifstream& file, size_t matrixSize) const
+{
 	Coordinates coordinates(matrixSize);
 	size_t x, y;
 	for (size_t i = 0; i < matrixSize; ++i)
@@ -565,9 +567,92 @@ Graph FileToGraphAdapter::ConvertEdgeListToMatrix(const std::string& fileName)
 	}
 
 	AssertIsStreamCorrect(file);
-	Graph graph(matrix, coordinates);
+	return coordinates;
+}
 
-	return graph;
+Holes FileToGraphAdapter::DetectHoles(const AdjacencyMatrix& matrix, const Coordinates& coordinates) const
+{
+	Holes holes;
+	size_t numberVertices = coordinates.size();
+	VisitState visited(numberVertices, state::white);
+
+	for (size_t v = 0; v < numberVertices; ++v)
+	{
+		if (visited[v] != state::white)
+		{
+			continue;
+		}
+
+		// Используем DFS для поиска компонент
+		NumberList result = GraphUtils::DFS(v, numberVertices, matrix, visited);
+
+		// Проверяем, является ли компонент циклом
+		if (!GraphUtils::IsCycle(result, matrix))
+		{
+			continue;
+		}
+
+		// Пропускаем цикл, если он содержит вершину 0 (главный цикл)
+		if (std::find(result.begin(), result.end(), 0) != result.end())
+		{
+			continue;
+		}
+
+		// Преобразуем номера вершин в координаты
+		Coordinates hole;
+		for (size_t vertex : result)
+		{
+			hole.push_back(coordinates[vertex]);
+		}
+
+		// Разворот по часовой стрелке
+		GraphUtils::EnsureClockwise(hole);
+
+		holes.push_back(hole);
+	}
+
+	return holes;
+}
+
+Coordinates Graph::DetectPolygon(const AdjacencyMatrix& matrix, const Coordinates& coordinates) const
+{
+	Coordinates polygon;
+	size_t numberVertices = coordinates.size();
+	VisitState visited(numberVertices, state::white);
+
+	for (size_t v = 0; v < numberVertices; ++v)
+	{
+		if (visited[v] != state::white)
+		{
+			continue;
+		}
+
+		// Используем DFS для поиска компонент
+		NumberList result = GraphUtils::DFS(v, numberVertices, matrix, visited);
+
+		// Проверяем, является ли компонент циклом
+		if (!GraphUtils::IsCycle(result, matrix))
+		{
+			continue;
+		}
+
+		// Пропускаем цикл, если он содержит вершину 0 (главный цикл)
+		if (std::find(result.begin(), result.end(), 0) == result.end())
+		{
+			continue;
+		}
+
+		// Преобразуем номера вершин в координаты
+		for (size_t vertex : result)
+		{
+			polygon.push_back(coordinates[vertex]);
+		}
+
+		// Разворот против часовой стрелки
+		GraphUtils::EnsureCounterClockwise(polygon);
+	}
+
+	return polygon;
 }
 
 template <typename T>
@@ -613,7 +698,7 @@ void FileToGraphAdapter::AssertIsValidNumbers(size_t from, size_t to, size_t mat
 	}
 }
 
-VisiLibity::Environment GraphToEnvironment::CreateEnvironment(const Coordinates& vertices, const std::vector<Coordinates>& holes)
+VisiLibity::Environment GraphToEnvironment::CreateEnvironment(const Coordinates& vertices, const Holes& holes)
 {
 	// Внешний контур (оболочка)
 	std::vector<VisiLibity::Point> outerPoints;
@@ -667,4 +752,104 @@ std::ostream& operator<<(std::ostream& os, const Graph& graph)
 	}
 
 	return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Holes& holes)
+{
+	os << "Отверстия в галерее: " << '\n';
+	size_t i = 0;
+
+	for (const auto& hole : holes)
+	{
+		std::cout << ++i << " - ";
+		for (const auto& vertex : hole)
+		{
+			os << "(" << vertex.first << ", " << vertex.second << ") ";
+		}
+		os << '\n';
+	}
+
+	return os;
+}
+
+NumberList GraphUtils::DFS(size_t vertex, size_t numberVertices, const AdjacencyMatrix& viewMatrix, std::vector<state>& visited)
+{
+	std::stack<size_t> stackBuffer;
+	stackBuffer.push(vertex);
+	visited[vertex] = state::gray;
+	NumberList componentVertices;
+
+	while (!stackBuffer.empty())
+	{
+		size_t currentVertex = stackBuffer.top();
+		stackBuffer.pop();
+		componentVertices.push_back(currentVertex);
+
+		for (size_t neighbor = 0; neighbor < numberVertices; ++neighbor)
+		{
+			if (viewMatrix[currentVertex][neighbor] == constants::EXIST && visited[neighbor] == state::white)
+			{
+				stackBuffer.push(neighbor);
+				visited[neighbor] = state::gray;
+			}
+		}
+
+		visited[currentVertex] = state::black;
+	}
+
+	return componentVertices;
+}
+
+bool GraphUtils::IsCycle(const NumberList& vertices, const AdjacencyMatrix& matrix)
+{
+	if (vertices.size() < 3)
+	{
+		return false;
+	}
+
+	size_t first = vertices.front();
+	size_t last = vertices.back();
+	return matrix[first][last] == constants::EXIST;
+}
+
+// Проверка ориентации многоугольника
+bool GraphUtils::IsClockwise(const Coordinates& polygon)
+{
+	double sum = 0.0;
+
+	for (size_t i = 0; i < polygon.size(); ++i)
+	{
+		const auto& [x1, y1] = polygon[i];
+		const auto& [x2, y2] = polygon[(i + 1) % polygon.size()];
+		sum += (x2 - x1) * (y2 + y1);
+	}
+
+	// Положительное значение — по часовой стрелке
+	return sum > 0;
+}
+
+// Разворот многоугольника против часовой стрелки
+void GraphUtils::EnsureCounterClockwise(Coordinates& polygon)
+{
+	if (IsClockwise(polygon))
+	{
+		std::reverse(polygon.begin(), polygon.end());
+	}
+}
+
+// Разворот многоугольника по часовой стрелке
+void GraphUtils::EnsureClockwise(Coordinates& polygon)
+{
+	if (!IsClockwise(polygon))
+	{
+		std::reverse(polygon.begin(), polygon.end());
+	}
+}
+
+// Вспомогательная функция: получить индекс по координате
+size_t GraphUtils::FindIndex(const Coordinates& C, const Point& p)
+{
+	// Предполагаем, что каждая точка уникальна
+	auto it = std::find_if(C.begin(), C.end(), [&](auto& v) { return v.first == (int)p.x() && v.second == (int)p.y(); });
+	return std::distance(C.begin(), it);
 }
