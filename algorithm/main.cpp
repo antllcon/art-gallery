@@ -27,23 +27,38 @@ Guards GetGuards(const Graph& graph)
 	return guards;
 }
 
-int main()
+std::string ParseArguments(int argc, char* argv[])
+{
+	if (argc != 2)
+	{
+		throw std::runtime_error("Формат ввода:\n[./museum-guards file_name]");
+	}
+
+	std::string fileName = argv[1];
+	return fileName;
+}
+
+int main(int argc, char* argv[])
 {
 	try
 	{
+		// Создание графа из файла
+		FileToGraphAdapter adapter;
+		std::string fileName = ParseArguments(argc, argv);
+		Graph artGallery = adapter.ConvertEdgeListToMatrix("../examples-polygon/" + fileName + ".txt");
+
 		// Инициализация приложения
 		sf::RenderWindow window(sf::VideoMode(screen::WIDTH, screen::HEIGHT), "Art Gallary Problem");
 		App app;
 
-		// Создание графа из файла
-		FileToGraphAdapter adapter;
-		Graph artGallery = adapter.ConvertEdgeListToMatrix("../examples-polygon/data.txt");
+		// Построим граф видимости
+		artGallery.SetMatrix(artGallery.GetViewMatrix());
 
 		// Вывод графа
 		std::cout << artGallery << std::endl;
 
 		// Поиск охранников
-		Guards guards = GetGuards(artGallery);
+		// Guards guards = GetGuards(artGallery);
 
 		// Цикл приложения
 		while (window.isOpen())
