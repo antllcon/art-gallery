@@ -301,12 +301,6 @@ AdjacencyMatrix Graph::GetViewMatrix() const
 	// 1) Выполнить триангуляцию свободного пространства
 	auto cdt = PlaneSweepTriangulation();
 
-	// Проверяем, что триангуляция не пуста
-	if (cdt.number_of_vertices() == 0)
-	{
-		throw std::runtime_error("Триангуляция не пустая");
-	}
-
 	// 2) Построить видимость
 	return BuildView(cdt);
 }
@@ -314,17 +308,23 @@ AdjacencyMatrix Graph::GetViewMatrix() const
 CDT Graph::PlaneSweepTriangulation() const
 {
 	CDT cdt;
-	// Преобразуем координаты в CGAL-точки и храним вектор handle'ов
+
 	std::vector<CDT::Vertex_handle> handles;
 	for (const auto& coord : m_coordinates)
 	{
 		handles.push_back(cdt.insert(Point(coord.first, coord.second)));
 	}
 
-	// Добавляем ограничения (ребра) в виде constraint-ов
+	// Добавляем ограничения (ребра), которые нельзя нарушать
 	for (size_t i = 0; i < handles.size(); ++i)
 	{
 		cdt.insert_constraint(handles[i], handles[(i + 1) % handles.size()]);
+	}
+
+	// Проверяем, что триангуляция не пуста
+	if (cdt.number_of_vertices() == 0)
+	{
+		throw std::runtime_error("Триангуляция не пустая");
 	}
 
 	return cdt;
@@ -336,8 +336,11 @@ AdjacencyMatrix Graph::BuildView(const CDT& cdt) const
 	AdjacencyMatrix view(n, std::vector<size_t>(n, constants::EMPTY));
 
 	if (cdt.number_of_vertices() == 0)
+	{
 		return view;
+	}
 
+	// Дальше не понятно
 	auto get_index = [&](const Point& p) -> size_t {
 		for (size_t i = 0; i < m_coordinates.size(); ++i)
 		{
@@ -358,17 +361,10 @@ AdjacencyMatrix Graph::BuildView(const CDT& cdt) const
 		auto vh1 = face->vertex(cdt.cw(idx));
 		auto vh2 = face->vertex(cdt.ccw(idx));
 
-		try
-		{
-			size_t i = get_index(vh1->point());
-			size_t j = get_index(vh2->point());
-			view[i][j] = constants::EXIST;
-			view[j][i] = constants::EXIST;
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cerr << "Warning: " << e.what() << std::endl;
-		}
+		size_t i = get_index(vh1->point());
+		size_t j = get_index(vh2->point());
+		view[i][j] = constants::EXIST;
+		view[j][i] = constants::EXIST;
 	}
 	return view;
 }
@@ -799,7 +795,6 @@ NumberList GraphUtils::DFS(size_t vertex, size_t numberVertices, const Adjacency
 
 	return componentVertices;
 }
-
 bool GraphUtils::IsCycle(const NumberList& vertices, const AdjacencyMatrix& matrix)
 {
 	if (vertices.size() < 3)
