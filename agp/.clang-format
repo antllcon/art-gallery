@@ -19,7 +19,7 @@ AlwaysBreakBeforeMultilineStrings: false
 AlwaysBreakTemplateDeclarations: true
 BinPackArguments: true
 BinPackParameters: true
-BraceWrapping:   
+BraceWrapping:
   AfterClass:      true
   AfterControlStatement: true
   AfterEnum:       true
@@ -37,7 +37,7 @@ BreakBeforeTernaryOperators: true
 BreakConstructorInitializersBeforeComma: true
 BreakAfterJavaFieldAnnotations: false
 BreakStringLiterals: true
-ColumnLimit:     0
+ColumnLimit:     90
 CommentPragmas:  '^ IWYU pragma:'
 BreakBeforeInheritanceComma: true
 FixNamespaceComments: true
@@ -50,7 +50,7 @@ DisableFormat:   false
 ExperimentalAutoDetectBinPacking: false
 # FixNamespaceComments: false
 ForEachMacros:   [ foreach, Q_FOREACH, BOOST_FOREACH ]
-IncludeCategories: 
+IncludeCategories:
   - Regex:           '^"(stdafx|pch|PrecompiledHeader)'
     Priority:        -2
   - Regex:           '^"(llvm|llvm-c|clang|clang-c)/'
