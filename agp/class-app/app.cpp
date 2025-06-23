@@ -188,10 +188,11 @@ void App::Render(sf::RenderWindow& window)
 		break;
 
 	case (AppState::Play):
-//		DrawLight(window, false);
-//        DrawGuards(window);
+		DrawLight(window, false);
+		DrawGuards(window);
+		// Отладка разбиения
 		// DrawCuts(window, true);
-		 DrawCutsOutline(window);
+		// DrawCutsOutline(window);
 		break;
 
 	default:
@@ -264,8 +265,9 @@ void App::HandleMenuEvents(sf::RenderWindow& window)
 	{
 		m_state = AppState::Play;
 		m_polygon.Print();
-//		ProtectMuseum();
-        m_monster = m_polygon.CreateVisualFaces();
+		ProtectMuseum();
+		// Отладка разбиения
+		// m_monster = m_polygon.CreateVisualFaces();
 	}
 }
 
@@ -300,7 +302,8 @@ void App::HandlePlayEvents()
 
 void App::ProtectMuseum()
 {
-	std::cout << std::endl << "Защита музея" << std::endl;
+	std::cout << std::endl
+			  << "Защита музея" << std::endl;
 
 	auto guards = m_polygon.CreatePointsGuards();
 	for (const auto& guard : guards)
